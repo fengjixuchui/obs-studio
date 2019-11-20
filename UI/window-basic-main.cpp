@@ -1199,6 +1199,15 @@ bool OBSBasic::InitBasicConfigDefaults()
 	}
 
 	/* ----------------------------------------------------- */
+	/* set twitch chat extensions to "both" if prev version  */
+	/* is under 24.1                                         */
+	if (config_get_bool(GetGlobalConfig(), "General", "Pre24.1Defaults") &&
+	    !config_has_user_value(basicConfig, "Twitch", "AddonChoice")) {
+		config_set_int(basicConfig, "Twitch", "AddonChoice", 3);
+		changed = true;
+	}
+
+	/* ----------------------------------------------------- */
 
 	if (changed)
 		config_save_safe(basicConfig, "tmp", nullptr);
@@ -7471,6 +7480,10 @@ void OBSBasic::PauseRecording()
 		pause->blockSignals(true);
 		pause->setChecked(true);
 		pause->blockSignals(false);
+
+		if (trayIcon)
+			trayIcon->setIcon(QIcon(":/res/images/obs_paused.png"));
+
 		os_atomic_set_bool(&recording_paused, true);
 
 		if (api)
@@ -7494,6 +7507,11 @@ void OBSBasic::UnpauseRecording()
 		pause->blockSignals(true);
 		pause->setChecked(false);
 		pause->blockSignals(false);
+
+		if (trayIcon)
+			trayIcon->setIcon(
+				QIcon(":/res/images/tray_active.png"));
+
 		os_atomic_set_bool(&recording_paused, false);
 
 		if (api)
