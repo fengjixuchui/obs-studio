@@ -157,7 +157,7 @@ private:
 	bool projectChanged = false;
 	bool previewEnabled = true;
 
-	const char *copyString;
+	std::list<const char *> copyStrings;
 	const char *copyFiltersString = nullptr;
 	bool copyVisible = true;
 
@@ -201,8 +201,7 @@ private:
 	ConfigFile basicConfig;
 
 	std::vector<SavedProjectorInfo *> savedProjectorsArray;
-	QPointer<QWidget> projectors[10];
-	QList<QPointer<QWidget>> windowProjectors;
+	std::vector<OBSProjector *> projectors;
 
 	QPointer<QWidget> stats;
 	QPointer<QWidget> remux;
@@ -307,7 +306,7 @@ private:
 	void Nudge(int dist, MoveDir dir);
 
 	OBSProjector *OpenProjector(obs_source_t *source, int monitor,
-				    QString title, ProjectorType type);
+				    ProjectorType type);
 
 	void GetAudioSourceFilters();
 	void GetAudioSourceProperties();
@@ -331,6 +330,8 @@ private:
 	void SaveProjectNow();
 
 	int GetTopSelectedSourceItem();
+
+	QModelIndexList GetAllSelectedSourceItems();
 
 	obs_hotkey_pair_id streamingHotkeys, recordingHotkeys, pauseHotkeys,
 		replayBufHotkeys, togglePreviewHotkeys;
@@ -690,6 +691,10 @@ public:
 	static OBSBasic *Get();
 
 	const char *GetCurrentOutputPath();
+
+	void DeleteProjector(OBSProjector *projector);
+	void AddProjectorMenuMonitors(QMenu *parent, QObject *target,
+				      const char *slot);
 
 protected:
 	virtual void closeEvent(QCloseEvent *event) override;
