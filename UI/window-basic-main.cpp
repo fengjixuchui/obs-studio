@@ -3977,7 +3977,7 @@ void OBSBasic::changeEvent(QEvent *event)
 
 			if (previewEnabled)
 				EnablePreviewDisplay(false);
-		} else if (stateEvent->oldState() == Qt::WindowMinimized &&
+		} else if (stateEvent->oldState() & Qt::WindowMinimized &&
 			   isVisible()) {
 			if (previewEnabled)
 				EnablePreviewDisplay(true);
@@ -4043,8 +4043,11 @@ void OBSBasic::on_action_Settings_triggered()
 
 	settings_already_executing = true;
 
-	OBSBasicSettings settings(this);
-	settings.exec();
+	{
+		OBSBasicSettings settings(this);
+		settings.exec();
+	}
+
 	SystemTray(false);
 
 	settings_already_executing = false;
