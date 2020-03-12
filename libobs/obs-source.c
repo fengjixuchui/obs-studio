@@ -51,6 +51,19 @@ struct obs_source_info *get_source_info(const char *id)
 	return NULL;
 }
 
+struct obs_source_info *get_source_info2(const char *unversioned_id,
+					 uint32_t ver)
+{
+	for (size_t i = 0; i < obs->source_types.num; i++) {
+		struct obs_source_info *info = &obs->source_types.array[i];
+		if (strcmp(info->unversioned_id, unversioned_id) == 0 &&
+		    info->version == ver)
+			return info;
+	}
+
+	return NULL;
+}
+
 static const char *source_signals[] = {
 	"void destroy(ptr source)",
 	"void remove(ptr source)",
@@ -328,6 +341,7 @@ obs_source_create_internal(const char *id, const char *name,
 
 		source->info.id = bstrdup(id);
 		source->owns_info_id = true;
+		source->info.unversioned_id = bstrdup(source->info.id);
 	} else {
 		source->info = *info;
 
@@ -648,8 +662,10 @@ void obs_source_destroy(struct obs_source *source)
 	obs_data_release(source->private_settings);
 	obs_context_data_free(&source->context);
 
-	if (source->owns_info_id)
+	if (source->owns_info_id) {
 		bfree((void *)source->info.id);
+		bfree((void *)source->info.unversioned_id);
+	}
 
 	bfree(source);
 }
@@ -3381,6 +3397,13 @@ const char *obs_source_get_id(const obs_source_t *source)
 							     : NULL;
 }
 
+const char *obs_source_get_unversioned_id(const obs_source_t *source)
+{
+	return obs_source_valid(source, "obs_source_get_unversioned_id")
+		       ? source->info.unversioned_id
+		       : NULL;
+}
+
 static inline void render_filter_bypass(obs_source_t *target,
 					gs_effect_t *effect,
 					const char *tech_name)
@@ -4572,7 +4595,7 @@ static inline void process_audio_source_tick(obs_source_t *source,
 void obs_source_audio_render(obs_source_t *source, uint32_t mixers,
 			     size_t channels, size_t sample_rate, size_t size)
 {
-	if (!source->audio_output_buf[0][0]) {
+	if (!source->audio_output_buf[0][0] || !source->context.data) {
 		source->audio_pending = true;
 		return;
 	}
