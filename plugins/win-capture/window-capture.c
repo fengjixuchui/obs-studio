@@ -61,6 +61,7 @@ struct window_capture {
 	struct dc_capture capture;
 
 	bool wgc_supported;
+	bool previously_failed;
 	void *winrt_module;
 	struct winrt_exports exports;
 	struct winrt_capture *capture_winrt;
@@ -245,6 +246,8 @@ static void wc_update(void *data, obs_data_t *settings)
 	/* forces a reset */
 	wc->window = NULL;
 	wc->check_window_timer = WC_CHECK_TIMER;
+
+	wc->previously_failed = false;
 }
 
 static uint32_t wc_width(void *data)
@@ -478,8 +481,16 @@ static void wc_tick(void *data, float seconds)
 		dc_capture_capture(&wc->capture, wc->window);
 	} else if (wc->method == METHOD_WGC) {
 		if (wc->window && (wc->capture_winrt == NULL)) {
-			wc->capture_winrt = wc->exports.winrt_capture_init(
-				wc->cursor, wc->window, wc->client_area);
+			if (!wc->previously_failed) {
+				wc->capture_winrt =
+					wc->exports.winrt_capture_init(
+						wc->cursor, wc->window,
+						wc->client_area);
+
+				if (!wc->capture_winrt) {
+					wc->previously_failed = true;
+				}
+			}
 		}
 	}
 
