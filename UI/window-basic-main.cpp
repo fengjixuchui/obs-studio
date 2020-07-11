@@ -221,7 +221,9 @@ OBSBasic::OBSBasic(QWidget *parent)
 
 	statsDock = new OBSDock();
 	statsDock->setObjectName(QStringLiteral("statsDock"));
-	statsDock->setFeatures(QDockWidget::AllDockWidgetFeatures);
+	statsDock->setFeatures(QDockWidget::DockWidgetClosable |
+			       QDockWidget::DockWidgetMovable |
+			       QDockWidget::DockWidgetFloatable);
 	statsDock->setWindowTitle(QTStr("Basic.Stats"));
 	addDockWidget(Qt::BottomDockWidgetArea, statsDock);
 	statsDock->setVisible(false);
@@ -3231,8 +3233,9 @@ bool OBSBasic::QueryRemoveSource(obs_source_t *source)
 
 	QMessageBox remove_source(this);
 	remove_source.setText(text);
-	QAbstractButton *Yes =
+	QPushButton *Yes =
 		remove_source.addButton(QTStr("Yes"), QMessageBox::YesRole);
+	remove_source.setDefaultButton(Yes);
 	remove_source.addButton(QTStr("No"), QMessageBox::NoRole);
 	remove_source.setIcon(QMessageBox::Question);
 	remove_source.setWindowTitle(QTStr("ConfirmRemove.Title"));
@@ -4994,8 +4997,9 @@ void OBSBasic::on_actionRemoveSource_triggered()
 
 		QMessageBox remove_items(this);
 		remove_items.setText(text);
-		QAbstractButton *Yes = remove_items.addButton(
-			QTStr("Yes"), QMessageBox::YesRole);
+		QPushButton *Yes = remove_items.addButton(QTStr("Yes"),
+							  QMessageBox::YesRole);
+		remove_items.setDefaultButton(Yes);
 		remove_items.addButton(QTStr("No"), QMessageBox::NoRole);
 		remove_items.setIcon(QMessageBox::Question);
 		remove_items.setWindowTitle(QTStr("ConfirmRemove.Title"));
@@ -7144,7 +7148,9 @@ void OBSBasic::on_lockUI_toggled(bool lock)
 {
 	QDockWidget::DockWidgetFeatures features =
 		lock ? QDockWidget::NoDockWidgetFeatures
-		     : QDockWidget::AllDockWidgetFeatures;
+		     : (QDockWidget::DockWidgetClosable |
+			QDockWidget::DockWidgetMovable |
+			QDockWidget::DockWidgetFloatable);
 
 	QDockWidget::DockWidgetFeatures mainFeatures = features;
 	mainFeatures &= ~QDockWidget::QDockWidget::DockWidgetClosable;
@@ -7814,7 +7820,9 @@ QAction *OBSBasic::AddDockWidget(QDockWidget *dock)
 	bool lock = ui->lockUI->isChecked();
 	QDockWidget::DockWidgetFeatures features =
 		lock ? QDockWidget::NoDockWidgetFeatures
-		     : QDockWidget::AllDockWidgetFeatures;
+		     : (QDockWidget::DockWidgetClosable |
+			QDockWidget::DockWidgetMovable |
+			QDockWidget::DockWidgetFloatable);
 
 	dock->setFeatures(features);
 
