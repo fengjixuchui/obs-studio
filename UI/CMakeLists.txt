@@ -29,16 +29,6 @@ else()
 	set(TWITCH_ENABLED TRUE)
 endif()
 
-if(NOT DEFINED MIXER_CLIENTID OR "${MIXER_CLIENTID}" STREQUAL "" OR
-   NOT DEFINED MIXER_HASH     OR "${MIXER_HASH}"     STREQUAL "" OR
-   NOT BROWSER_AVAILABLE_INTERNAL)
-	set(MIXER_ENABLED FALSE)
-	set(MIXER_CLIENTID "")
-	set(MIXER_HASH "0")
-else()
-	set(MIXER_ENABLED TRUE)
-endif()
-
 if(NOT DEFINED RESTREAM_CLIENTID OR "${RESTREAM_CLIENTID}" STREQUAL "" OR
    NOT DEFINED RESTREAM_HASH     OR "${RESTREAM_HASH}"     STREQUAL "" OR
    NOT BROWSER_AVAILABLE_INTERNAL)
@@ -166,15 +156,6 @@ if(BROWSER_AVAILABLE_INTERNAL)
 			)
 	endif()
 
-	if(MIXER_ENABLED)
-		list(APPEND obs_PLATFORM_SOURCES
-			auth-mixer.cpp
-			)
-		list(APPEND obs_PLATFORM_HEADERS
-			auth-mixer.hpp
-			)
-	endif()
-
 	if(RESTREAM_ENABLED)
 		list(APPEND obs_PLATFORM_SOURCES
 			auth-restream.cpp
@@ -219,6 +200,7 @@ set(obs_SOURCES
 	window-basic-main-outputs.cpp
 	window-basic-source-select.cpp
 	window-basic-settings-stream.cpp
+	window-basic-main-screenshot.cpp
 	window-basic-auto-config-test.cpp
 	window-basic-main-scene-collections.cpp
 	window-basic-main-transitions.cpp
@@ -307,6 +289,7 @@ set(obs_HEADERS
 	mute-checkbox.hpp
 	record-button.hpp
 	ui-validation.hpp
+	screenshot-obj.hpp
 	url-push-button.hpp
 	volume-control.hpp
 	adv-audio-control.hpp

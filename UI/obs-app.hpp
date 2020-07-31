@@ -40,6 +40,10 @@ std::string GenerateTimeDateFilename(const char *extension,
 				     bool noSpace = false);
 std::string GenerateSpecifiedFilename(const char *extension, bool noSpace,
 				      const char *format);
+std::string GetFormatString(const char *format, const char *prefix,
+			    const char *suffix);
+std::string GetOutputFilename(const char *path, const char *ext, bool noSpace,
+			      bool overwrite, const char *format);
 QObject *CreateShortcutFilter();
 
 struct BaseLexer {
@@ -72,9 +76,10 @@ private:
 	std::string theme;
 	ConfigFile globalConfig;
 	TextLookup textLookup;
-	OBSContext obsContext;
 	QPointer<OBSMainWindow> mainWindow;
 	profiler_name_store_t *profilerNameStore = nullptr;
+
+	bool libobs_initialized = false;
 
 	os_inhibit_t *sleepInhibitor = nullptr;
 	int sleepInhibitRefs = 0;
