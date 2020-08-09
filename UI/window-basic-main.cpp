@@ -1383,7 +1383,7 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_uint(basicConfig, "Video", "FPSDen", 1);
 	config_set_default_string(basicConfig, "Video", "ScaleType", "bicubic");
 	config_set_default_string(basicConfig, "Video", "ColorFormat", "NV12");
-	config_set_default_string(basicConfig, "Video", "ColorSpace", "601");
+	config_set_default_string(basicConfig, "Video", "ColorSpace", "sRGB");
 	config_set_default_string(basicConfig, "Video", "ColorRange",
 				  "Partial");
 
@@ -2677,11 +2677,6 @@ void OBSBasic::AddScene(OBSSource source)
 	container.handlers.assign({
 		std::make_shared<OBSSignal>(handler, "item_add",
 					    OBSBasic::SceneItemAdded, this),
-		std::make_shared<OBSSignal>(handler, "item_select",
-					    OBSBasic::SceneItemSelected, this),
-		std::make_shared<OBSSignal>(handler, "item_deselect",
-					    OBSBasic::SceneItemDeselected,
-					    this),
 		std::make_shared<OBSSignal>(handler, "reorder",
 					    OBSBasic::SceneReordered, this),
 		std::make_shared<OBSSignal>(handler, "refresh",
@@ -2849,16 +2844,6 @@ void OBSBasic::RenameSources(OBSSource source, QString newName,
 	obs_scene_t *scene = obs_scene_from_source(source);
 	if (scene)
 		OBSProjector::UpdateMultiviewProjectors();
-}
-
-void OBSBasic::SelectSceneItem(OBSScene scene, OBSSceneItem item, bool select)
-{
-	SignalBlocker sourcesSignalBlocker(ui->sources);
-
-	if (scene != GetCurrentScene() || ignoreSelectionUpdate)
-		return;
-
-	ui->sources->SelectItem(item, select);
 }
 
 static inline bool SourceMixerHidden(obs_source_t *source)
@@ -3463,31 +3448,6 @@ void OBSBasic::SceneItemAdded(void *data, calldata_t *params)
 				  Q_ARG(OBSSceneItem, OBSSceneItem(item)));
 }
 
-void OBSBasic::SceneItemSelected(void *data, calldata_t *params)
-{
-	OBSBasic *window = static_cast<OBSBasic *>(data);
-
-	obs_scene_t *scene = (obs_scene_t *)calldata_ptr(params, "scene");
-	obs_sceneitem_t *item = (obs_sceneitem_t *)calldata_ptr(params, "item");
-
-	QMetaObject::invokeMethod(window, "SelectSceneItem",
-				  Q_ARG(OBSScene, scene),
-				  Q_ARG(OBSSceneItem, item), Q_ARG(bool, true));
-}
-
-void OBSBasic::SceneItemDeselected(void *data, calldata_t *params)
-{
-	OBSBasic *window = static_cast<OBSBasic *>(data);
-
-	obs_scene_t *scene = (obs_scene_t *)calldata_ptr(params, "scene");
-	obs_sceneitem_t *item = (obs_sceneitem_t *)calldata_ptr(params, "item");
-
-	QMetaObject::invokeMethod(window, "SelectSceneItem",
-				  Q_ARG(OBSScene, scene),
-				  Q_ARG(OBSSceneItem, item),
-				  Q_ARG(bool, false));
-}
-
 void OBSBasic::SourceCreated(void *data, calldata_t *params)
 {
 	obs_source_t *source = (obs_source_t *)calldata_ptr(params, "source");
@@ -3792,8 +3752,11 @@ int OBSBasic::ResetVideo()
 	ovi.output_height =
 		(uint32_t)config_get_uint(basicConfig, "Video", "OutputCY");
 	ovi.output_format = GetVideoFormatFromName(colorFormat);
-	ovi.colorspace = astrcmpi(colorSpace, "601") == 0 ? VIDEO_CS_601
-							  : VIDEO_CS_709;
+	ovi.colorspace = astrcmpi(colorSpace, "601") == 0
+				 ? VIDEO_CS_601
+				 : (astrcmpi(colorSpace, "709") == 0
+					    ? VIDEO_CS_709
+					    : VIDEO_CS_SRGB);
 	ovi.range = astrcmpi(colorRange, "Full") == 0 ? VIDEO_RANGE_FULL
 						      : VIDEO_RANGE_PARTIAL;
 	ovi.adapter =
