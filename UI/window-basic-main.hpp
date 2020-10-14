@@ -401,6 +401,9 @@ private:
 
 	void CreateProgramDisplay();
 	void CreateProgramOptions();
+	int TransitionCount();
+	int AddTransitionBeforeSeparator(const QString &name,
+					 obs_source_t *source);
 	void AddQuickTransitionId(int id);
 	void AddQuickTransition();
 	void AddQuickTransitionHotkey(QuickTransition *qt);
@@ -570,6 +573,7 @@ public slots:
 
 	void ReplayBufferStart();
 	void ReplayBufferSave();
+	void ReplayBufferSaved();
 	void ReplayBufferStopping();
 	void ReplayBufferStop(int code);
 
