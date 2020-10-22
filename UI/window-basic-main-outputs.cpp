@@ -1182,6 +1182,8 @@ AdvancedOutput::AdvancedOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 			replayBufferStopping.Connect(signal, "stopping",
 						     OBSReplayBufferStopping,
 						     this);
+			replayBufferSaved.Connect(signal, "saved",
+						  OBSReplayBufferSaved, this);
 		}
 
 		fileOutput = obs_output_create(
@@ -1807,9 +1809,15 @@ bool AdvancedOutput::StartReplayBuffer()
 	}
 
 	if (!obs_output_start(replayBuffer)) {
+		QString error_reason;
+		const char *error = obs_output_get_last_error(replayBuffer);
+		if (error)
+			error_reason = QT_UTF8(error);
+		else
+			error_reason = QTStr("Output.StartFailedGeneric");
 		QMessageBox::critical(main,
 				      QTStr("Output.StartRecordingFailed"),
-				      QTStr("Output.StartFailedGeneric"));
+				      error_reason);
 		return false;
 	}
 
