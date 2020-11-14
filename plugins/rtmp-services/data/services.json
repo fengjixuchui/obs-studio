@@ -193,7 +193,7 @@
             "recommended": {
                 "keyint": 2,
                 "max video bitrate": 6000,
-                "max audio bitrate": 160,
+                "max audio bitrate": 320,
                 "x264opts": "scenecut=0"
             }
         },
@@ -477,8 +477,11 @@
             "recommended": {
                 "keyint": 2,
                 "profile": "main",
-                "max width": 1280,
-                "max height": 720,
+                "supported resolutions": [
+                    "1280x720",
+                    "852x480",
+                    "480x360"
+                ],
                 "max fps": 30,
                 "max video bitrate": 6000,
                 "max audio bitrate": 128
