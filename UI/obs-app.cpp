@@ -35,10 +35,12 @@
 #include <QProxyStyle>
 #include <QScreen>
 #include <QProcess>
+#include <QAccessible>
 
 #include "qt-wrappers.hpp"
 #include "obs-app.hpp"
 #include "log-viewer.hpp"
+#include "slider-ignorewheel.hpp"
 #include "window-basic-main.hpp"
 #include "window-basic-settings.hpp"
 #include "crash-report.hpp"
@@ -114,7 +116,7 @@ QObject *CreateShortcutFilter()
 			case Qt::MouseButtonMask:
 				return false;
 
-			case Qt::MidButton:
+			case Qt::MiddleButton:
 				hotkey.key = OBS_KEY_MOUSE3;
 				break;
 
@@ -446,6 +448,8 @@ bool OBSApp::InitGlobalConfigDefaults()
 				true);
 	config_set_default_bool(globalConfig, "BasicWindow", "ShowSourceIcons",
 				true);
+	config_set_default_bool(globalConfig, "BasicWindow",
+				"ShowContextToolbars", true);
 	config_set_default_bool(globalConfig, "BasicWindow", "StudioModeLabels",
 				true);
 
@@ -479,6 +483,8 @@ bool OBSApp::InitGlobalConfigDefaults()
 #endif
 
 #ifdef __APPLE__
+	config_set_default_bool(globalConfig, "General", "BrowserHWAccel",
+				true);
 	config_set_default_bool(globalConfig, "Video", "DisableOSXVSync", true);
 	config_set_default_bool(globalConfig, "Video", "ResetOSXVSyncOnExit",
 				true);
@@ -1383,7 +1389,7 @@ bool OBSApp::OBSInit()
 
 	obs_set_ui_task_handler(ui_task_handler);
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 	bool browserHWAccel =
 		config_get_bool(globalConfig, "General", "BrowserHWAccel");
 
@@ -1440,6 +1446,8 @@ string OBSApp::GetVersionString() const
 	ver << "windows)";
 #elif __APPLE__
 	ver << "mac)";
+#elif __OpenBSD__
+	ver << "openbsd)";
 #elif __FreeBSD__
 	ver << "freebsd)";
 #else /* assume linux for the time being */
@@ -1897,6 +1905,17 @@ static auto ProfilerFree = [](void *) {
 	profiler_free();
 };
 
+QAccessibleInterface *accessibleFactory(const QString &classname,
+					QObject *object)
+{
+	if (classname == QLatin1String("VolumeSlider") && object &&
+	    object->isWidgetType())
+		return new VolumeAccessibleInterface(
+			static_cast<QWidget *>(object));
+
+	return nullptr;
+}
+
 static const char *run_program_init = "run_program_init";
 static int run_program(fstream &logFile, int argc, char *argv[])
 {
@@ -1915,6 +1934,10 @@ static int run_program(fstream &logFile, int argc, char *argv[])
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
 	QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+	QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
+		Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+#endif
 
 #if !defined(_WIN32) && !defined(__APPLE__) && BROWSER_AVAILABLE
 	setenv("QT_NO_GLIB", "1", true);
@@ -1928,6 +1951,8 @@ static int run_program(fstream &logFile, int argc, char *argv[])
 
 	OBSApp program(argc, argv, profilerNameStore.get());
 	try {
+		QAccessible::installFactory(accessibleFactory);
+
 		bool created_log = false;
 
 		program.AppInit();
@@ -1948,6 +1973,8 @@ static int run_program(fstream &logFile, int argc, char *argv[])
 		CheckAppWithSameBundleID(already_running);
 #elif defined(__linux__)
 		RunningInstanceCheck(already_running);
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
+		PIDFileCheck(already_running);
 #endif
 
 		if (!already_running) {
@@ -2263,6 +2290,36 @@ bool GetClosestUnusedFileName(std::string &path, const char *extension)
 		}
 	} while (os_file_exists(path.c_str()));
 
+	return true;
+}
+
+bool GetUnusedSceneCollectionFile(std::string &name, std::string &file)
+{
+	char path[512];
+	int ret;
+
+	if (!GetFileSafeName(name.c_str(), file)) {
+		blog(LOG_WARNING, "Failed to create safe file name for '%s'",
+		     name.c_str());
+		return false;
+	}
+
+	ret = GetConfigPath(path, sizeof(path), "obs-studio/basic/scenes/");
+	if (ret <= 0) {
+		blog(LOG_WARNING, "Failed to get scene collection config path");
+		return false;
+	}
+
+	file.insert(0, path);
+
+	if (!GetClosestUnusedFileName(file, "json")) {
+		blog(LOG_WARNING, "Failed to get closest file name for %s",
+		     file.c_str());
+		return false;
+	}
+
+	file.erase(file.size() - 5, 5);
+	file.erase(0, strlen(path));
 	return true;
 }
 
