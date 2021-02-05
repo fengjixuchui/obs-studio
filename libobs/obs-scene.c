@@ -20,6 +20,7 @@
 #include "util/util_uint64.h"
 #include "graphics/math-defs.h"
 #include "obs-scene.h"
+#include "obs-internal.h"
 
 const struct obs_source_info group_info;
 
@@ -1246,7 +1247,8 @@ static inline obs_source_t *dup_child(struct darray *array, size_t idx,
 		}
 	}
 
-	return obs_source_duplicate(source, NULL, private);
+	return obs_source_duplicate(
+		source, private ? obs_source_get_name(source) : NULL, private);
 }
 
 static inline obs_source_t *new_ref(obs_source_t *source)
@@ -1530,12 +1532,12 @@ void obs_scene_enum_items(obs_scene_t *scene,
 
 static obs_sceneitem_t *sceneitem_get_ref(obs_sceneitem_t *si)
 {
-	long owners = si->ref;
+	long owners = os_atomic_load_long(&si->ref);
 	while (owners > 0) {
-		if (os_atomic_compare_swap_long(&si->ref, owners, owners + 1))
+		if (os_atomic_compare_exchange_long(&si->ref, &owners,
+						    owners + 1)) {
 			return si;
-
-		owners = si->ref;
+		}
 	}
 	return NULL;
 }
